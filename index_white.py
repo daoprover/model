@@ -11,6 +11,7 @@ if __name__ == "__main__":
     graphHelper = GraphHelper()
     addresses = graphHelper.get_white_addresses(700000)
     print("addresses: ", addresses)
+    i = 0
     for address in addresses:
         address_file = f"assets/graphs/{address}.gexf"
 
