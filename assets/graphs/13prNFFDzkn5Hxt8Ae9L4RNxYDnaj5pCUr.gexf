@@ -1,0 +1,37 @@
+<?xml version='1.0' encoding='utf-8'?>
+<gexf xmlns="http://www.gexf.net/1.2draft" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.gexf.net/1.2draft http://www.gexf.net/1.2draft/gexf.xsd" version="1.2">
+  <meta lastmodifieddate="2024-05-20">
+    <creator>NetworkX 3.1</creator>
+  </meta>
+  <graph defaultedgetype="directed" mode="static" name="princetonCerber">
+    <attributes mode="static" class="edge">
+      <attribute id="0" title="amount" type="long" />
+      <attribute id="1" title="fee" type="long" />
+      <attribute id="2" title="size" type="long" />
+      <attribute id="3" title="timestamp" type="long" />
+    </attributes>
+    <nodes>
+      <node id="13prNFFDzkn5Hxt8Ae9L4RNxYDnaj5pCUr" label="13prNFFDzkn5Hxt8Ae9L4RNxYDnaj5pCUr" />
+      <node id="1LsUXMVWeRaJ1eQpsbD6hc98tmhr9ir2Ez" label="1LsUXMVWeRaJ1eQpsbD6hc98tmhr9ir2Ez" />
+      <node id="1KdtJU9oYkMr89DcVb5MsSUXbe2Tr2dP2V" label="1KdtJU9oYkMr89DcVb5MsSUXbe2Tr2dP2V" />
+    </nodes>
+    <edges>
+      <edge source="13prNFFDzkn5Hxt8Ae9L4RNxYDnaj5pCUr" target="1LsUXMVWeRaJ1eQpsbD6hc98tmhr9ir2Ez" id="0">
+        <attvalues>
+          <attvalue for="0" value="99948534" />
+          <attvalue for="1" value="51466" />
+          <attvalue for="2" value="192" />
+          <attvalue for="3" value="1490940362" />
+        </attvalues>
+      </edge>
+      <edge source="1KdtJU9oYkMr89DcVb5MsSUXbe2Tr2dP2V" target="13prNFFDzkn5Hxt8Ae9L4RNxYDnaj5pCUr" id="1">
+        <attvalues>
+          <attvalue for="0" value="100000000" />
+          <attvalue for="1" value="677072" />
+          <attvalue for="2" value="4469" />
+          <attvalue for="3" value="1490939013" />
+        </attvalues>
+      </edge>
+    </edges>
+  </graph>
+</gexf>

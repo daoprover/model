@@ -1,0 +1,46 @@
+<?xml version='1.0' encoding='utf-8'?>
+<gexf xmlns="http://www.gexf.net/1.2draft" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.gexf.net/1.2draft http://www.gexf.net/1.2draft/gexf.xsd" version="1.2">
+  <meta lastmodifieddate="2024-05-21">
+    <creator>NetworkX 3.1</creator>
+  </meta>
+  <graph defaultedgetype="directed" mode="static" name="princetonCerber">
+    <attributes mode="static" class="edge">
+      <attribute id="0" title="amount" type="long" />
+      <attribute id="1" title="fee" type="long" />
+      <attribute id="2" title="size" type="long" />
+      <attribute id="3" title="timestamp" type="long" />
+    </attributes>
+    <nodes>
+      <node id="16dceUPQCuQayDGCirspk8ZWvRF2UQhHRd" label="16dceUPQCuQayDGCirspk8ZWvRF2UQhHRd" />
+      <node id="1ATjnRfPnAgLJ2i6ZjKkbEJuUeuXByfofw" label="1ATjnRfPnAgLJ2i6ZjKkbEJuUeuXByfofw" />
+      <node id="1EKQXPV5ttDj4CJvS1hLdPf1fWmd1nGvH2" label="1EKQXPV5ttDj4CJvS1hLdPf1fWmd1nGvH2" />
+      <node id="1KVzmm2E8YWFZVQprhmdZE4cDyptz1dsW4" label="1KVzmm2E8YWFZVQprhmdZE4cDyptz1dsW4" />
+    </nodes>
+    <edges>
+      <edge source="16dceUPQCuQayDGCirspk8ZWvRF2UQhHRd" target="1ATjnRfPnAgLJ2i6ZjKkbEJuUeuXByfofw" id="0">
+        <attvalues>
+          <attvalue for="0" value="99946998" />
+          <attvalue for="1" value="53002" />
+          <attvalue for="2" value="191" />
+          <attvalue for="3" value="1493355404" />
+        </attvalues>
+      </edge>
+      <edge source="1EKQXPV5ttDj4CJvS1hLdPf1fWmd1nGvH2" target="1KVzmm2E8YWFZVQprhmdZE4cDyptz1dsW4" id="1">
+        <attvalues>
+          <attvalue for="0" value="3737034882" />
+          <attvalue for="1" value="40500" />
+          <attvalue for="2" value="225" />
+          <attvalue for="3" value="1493354085" />
+        </attvalues>
+      </edge>
+      <edge source="1EKQXPV5ttDj4CJvS1hLdPf1fWmd1nGvH2" target="16dceUPQCuQayDGCirspk8ZWvRF2UQhHRd" id="2">
+        <attvalues>
+          <attvalue for="0" value="100000000" />
+          <attvalue for="1" value="40500" />
+          <attvalue for="2" value="225" />
+          <attvalue for="3" value="1493354085" />
+        </attvalues>
+      </edge>
+    </edges>
+  </graph>
+</gexf>

@@ -1,0 +1,63 @@
+<?xml version='1.0' encoding='utf-8'?>
+<gexf xmlns="http://www.gexf.net/1.2draft" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.gexf.net/1.2draft http://www.gexf.net/1.2draft/gexf.xsd" version="1.2">
+  <meta lastmodifieddate="2024-05-21">
+    <creator>NetworkX 3.1</creator>
+  </meta>
+  <graph defaultedgetype="directed" mode="static" name="princetonCerber">
+    <attributes mode="static" class="edge">
+      <attribute id="0" title="amount" type="long" />
+      <attribute id="1" title="fee" type="long" />
+      <attribute id="2" title="size" type="long" />
+      <attribute id="3" title="timestamp" type="long" />
+    </attributes>
+    <nodes>
+      <node id="14moeWaJwNwWwn5LGvLWeiWC7v7ASvgedd" label="14moeWaJwNwWwn5LGvLWeiWC7v7ASvgedd" />
+      <node id="1DUNjXVNZjcmf8tF9xCjriKGRFK9QkxZUn" label="1DUNjXVNZjcmf8tF9xCjriKGRFK9QkxZUn" />
+      <node id="1PVaMKzTY6nCAW3xDjyMapqaizvhypSvwj" label="1PVaMKzTY6nCAW3xDjyMapqaizvhypSvwj" />
+      <node id="1NcJ12UX2JTNbnmnd32vhNgrPtdQj1rJzJ" label="1NcJ12UX2JTNbnmnd32vhNgrPtdQj1rJzJ" />
+      <node id="13bCirQYBRfrjZi2CZi2QHx3Je4oTPjB72" label="13bCirQYBRfrjZi2CZi2QHx3Je4oTPjB72" />
+    </nodes>
+    <edges>
+      <edge source="14moeWaJwNwWwn5LGvLWeiWC7v7ASvgedd" target="1DUNjXVNZjcmf8tF9xCjriKGRFK9QkxZUn" id="0">
+        <attvalues>
+          <attvalue for="0" value="99989903" />
+          <attvalue for="1" value="10097" />
+          <attvalue for="2" value="191" />
+          <attvalue for="3" value="1466445783" />
+        </attvalues>
+      </edge>
+      <edge source="1PVaMKzTY6nCAW3xDjyMapqaizvhypSvwj" target="1NcJ12UX2JTNbnmnd32vhNgrPtdQj1rJzJ" id="1">
+        <attvalues>
+          <attvalue for="0" value="1979430" />
+          <attvalue for="1" value="20570" />
+          <attvalue for="2" value="373" />
+          <attvalue for="3" value="1466444513" />
+        </attvalues>
+      </edge>
+      <edge source="1PVaMKzTY6nCAW3xDjyMapqaizvhypSvwj" target="14moeWaJwNwWwn5LGvLWeiWC7v7ASvgedd" id="2">
+        <attvalues>
+          <attvalue for="0" value="100000000" />
+          <attvalue for="1" value="20570" />
+          <attvalue for="2" value="373" />
+          <attvalue for="3" value="1466444513" />
+        </attvalues>
+      </edge>
+      <edge source="13bCirQYBRfrjZi2CZi2QHx3Je4oTPjB72" target="1NcJ12UX2JTNbnmnd32vhNgrPtdQj1rJzJ" id="3">
+        <attvalues>
+          <attvalue for="0" value="1979430" />
+          <attvalue for="1" value="20570" />
+          <attvalue for="2" value="373" />
+          <attvalue for="3" value="1466444513" />
+        </attvalues>
+      </edge>
+      <edge source="13bCirQYBRfrjZi2CZi2QHx3Je4oTPjB72" target="14moeWaJwNwWwn5LGvLWeiWC7v7ASvgedd" id="4">
+        <attvalues>
+          <attvalue for="0" value="100000000" />
+          <attvalue for="1" value="20570" />
+          <attvalue for="2" value="373" />
+          <attvalue for="3" value="1466444513" />
+        </attvalues>
+      </edge>
+    </edges>
+  </graph>
+</gexf>
