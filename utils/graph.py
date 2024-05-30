@@ -116,3 +116,30 @@ class GraphHelper:
             print("Error fetching data:", response.status_code)
             return None
 
+    def get_white_addresses(self, block_id):
+        url = f"https://blockchain.info/rawblock/{block_id}"
+        response = requests.get(url)
+
+        if response.status_code == 200:
+            data = response.json()
+            transactions = data['tx']
+            addresses = []
+            for tx in transactions:
+                inputs = tx['inputs']
+                for input in inputs:
+                   try:
+                        address = input["addr"]
+                        addresses.append(address)
+                   except KeyError:
+                       continue
+                outs = tx['out']
+                for out in outs:
+                    try:
+                        address = out["addr"]
+                        addresses.append(address)
+                    except KeyError:
+                        continue
+            return addresses
+        else:
+            print("Error fetching data:", response.status_code)
+            return None
