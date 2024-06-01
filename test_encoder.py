@@ -8,22 +8,29 @@ import torch.nn.functional as F
 from torch_geometric.nn import SAGEConv
 from sklearn.preprocessing import LabelEncoder, label_binarize
 from sklearn.metrics import confusion_matrix, classification_report, roc_curve, auc
+from sklearn.preprocessing import LabelBinarizer
 
 from utils.graph import GraphHelper
 
-# Define the Autoencoder
+import torch
+from torch_geometric.loader import DataLoader
+from torch_geometric.utils import from_networkx
+
+# Define the model architecture (ensure this matches the saved model architecture)
 class Autoencoder(torch.nn.Module):
     def __init__(self, input_dim, hidden_dim, encoded_dim):
         super(Autoencoder, self).__init__()
         self.encoder = torch.nn.Sequential(
             torch.nn.Linear(input_dim, hidden_dim),
             torch.nn.ReLU(),
+            torch.nn.Dropout(0.2),
             torch.nn.Linear(hidden_dim, encoded_dim),
-            torch.nn.ReLU()
+            torch.nn.ReLU(),
         )
         self.decoder = torch.nn.Sequential(
             torch.nn.Linear(encoded_dim, hidden_dim),
             torch.nn.ReLU(),
+            torch.nn.Dropout(0.2),
             torch.nn.Linear(hidden_dim, input_dim),
             torch.nn.Sigmoid()
         )
@@ -33,26 +40,47 @@ class Autoencoder(torch.nn.Module):
         decoded = self.decoder(encoded)
         return encoded, decoded
 
-# Define the GraphSAGE model with Autoencoder
 class GraphSAGEWithAutoencoder(torch.nn.Module):
     def __init__(self, input_dim, hidden_dim, encoded_dim, num_classes):
         super(GraphSAGEWithAutoencoder, self).__init__()
         self.autoencoder = Autoencoder(input_dim, hidden_dim, encoded_dim)
-        self.conv1 = SAGEConv(encoded_dim, 16)  # Adjust input feature size to match encoded dimension
-        self.conv2 = SAGEConv(16, 16)
-        self.fc = torch.nn.Linear(16, num_classes)  # Adjust output size based on number of classes
+        self.conv1 = SAGEConv(encoded_dim, 32)
+        self.conv2 = SAGEConv(32, 32)
+        # Adjust the dimensions of fc layer to match the saved model
+        self.fc = torch.nn.Linear(32, num_classes)
 
     def forward(self, data):
         x, edge_index = data.x, data.edge_index
-        encoded, _ = self.autoencoder(x)
+        encoded, decoded = self.autoencoder(x)
         x = self.conv1(encoded, edge_index)
         x = F.relu(x)
         x = self.conv2(x, edge_index)
         x = F.relu(x)
-        x = torch.mean(x, dim=0, keepdim=True)  # Global mean pooling
+        x = torch.mean(x, dim=0, keepdim=True)
         x = self.fc(x)
         return F.log_softmax(x, dim=1)
 
+
+def validate(loader, model):
+    model.eval()
+    total_loss = 0
+    correct = 0
+    all_preds = []
+    all_labels = []
+    all_probs = []
+    with torch.no_grad():
+        for data in loader:
+            out = model(data)
+            loss = F.nll_loss(out, data.y)
+            total_loss += loss.item()
+            prob = torch.exp(out)
+            _, pred = out.max(dim=1)
+            correct += int((pred == data.y).sum())
+            all_preds.extend(pred.tolist())
+            all_labels.extend(data.y.tolist())
+            all_probs.extend(prob.tolist())
+    accuracy = correct / len(loader)
+    return total_loss / len(loader), accuracy, all_preds, all_labels, all_probs
 
 BASE_DIR = './assets/test'
 files = os.listdir(BASE_DIR)
@@ -62,7 +90,7 @@ graphs = []
 labels = []
 
 # Ensure some sample graphs are created and saved with labels
-for filepath in files[:100]:
+for filepath in files:
     if filepath.endswith('.gexf'):
         graph, label = graph_helper.load_transaction_graph_from_gexf(f'{BASE_DIR}/{filepath}')
         print(f"Loaded label: {label}")  # Verify the label is loaded correctly
@@ -74,9 +102,12 @@ for filepath in files[:100]:
 
         # Use the label loaded from the GEXF file or add a default label if not present
         if label is not None:
+            if label != "white":
+                label = "anomaly"
             labels.append(label)
         else:
-            labels.append("default_label")
+            labels.append("white")
+        print("label: ", label)
 
         graphs.append(graph_pyg)
 
@@ -96,14 +127,19 @@ for i, graph_pyg in enumerate(graphs):
 loader = DataLoader(graphs, batch_size=1, shuffle=True)
 
 
-# Load the model
-num_classes = 18
+## Initialize the model
 input_dim = 2
-hidden_dim = 16
-encoded_dim = 8
+hidden_dim = 32
+encoded_dim = 32
+num_classes = len(label_encoder.classes_)
 model = GraphSAGEWithAutoencoder(input_dim, hidden_dim, encoded_dim, num_classes)
-model.load_state_dict(torch.load("sage_autoencoder_model.h5"))
+model.load_state_dict(torch.load("sage_autoencoder_model.pth"))
 model.eval()
+
+val_loader = DataLoader(graphs, batch_size=1, shuffle=False)
+
+val_loss, val_accuracy, all_preds, all_labels, all_probs = validate(val_loader, model)
+print(f'Validation Loss: {val_loss:.4f}, Validation Accuracy: {val_accuracy:.4f}')
 
 # Now you can use the loaded model for evaluation
 correct = 0
@@ -135,40 +171,34 @@ plt.ylabel('True Label')
 plt.xlabel('Predicted Label')
 plt.show()
 
+
+all_probs_np = np.vstack(all_probs)
+all_labels_np = np.array(all_labels)
+print("Shape of prediction probabilities:", all_probs_np.shape)
+
 # Classification report
 # print(classification_report(all_labels, all_preds, target_names=label_encoder.classes_, zero_division=0))
 
-# Binarize the labels for ROC curve
-all_labels_bin = label_binarize(all_labels, classes=range(num_classes))
-all_probs = np.array(all_probs)
-
+# Compute ROC curve and ROC area for each class
 # Compute ROC curve and ROC area for each class
 fpr = dict()
 tpr = dict()
 roc_auc = dict()
-optimal_thresholds = dict()
 for i in range(num_classes):
-    fpr[i], tpr[i], thresholds = roc_curve(all_labels_bin[:, i], all_probs[:, i])
+    # Binarize the labels for the current class
+    y_true = (encoded_labels == i).astype(int)
+    fpr[i], tpr[i], _ = roc_curve(y_true, all_probs_np[:, i])
     roc_auc[i] = auc(fpr[i], tpr[i])
-    # Find the optimal threshold (Youden's J statistic)
-    j_scores = tpr[i] - fpr[i]
-    optimal_idx = np.argmax(j_scores)
-    optimal_thresholds[i] = thresholds[optimal_idx]
 
-print("Optimal Thresholds:", optimal_thresholds)
-
-# Plot all ROC curves
-plt.figure(figsize=(10, 8))
-colors = ['aqua', 'darkorange', 'cornflowerblue', 'red', 'green', 'blue', 'yellow', 'black', 'purple', 'brown']  # Add more colors if necessary
-for i, color in zip(range(num_classes), colors):
-    plt.plot(fpr[i], tpr[i], color=color, lw=2,
-             label=f'ROC curve of class {label_encoder.classes_[i]} (area = {roc_auc[i]:.2f})')
-
-plt.plot([0, 1], [0, 1], 'k--', lw=2)
+# Plot ROC curve
+plt.figure()
+for i in range(num_classes):
+    plt.plot(fpr[i], tpr[i], label=f'ROC curve of class {i} (AUC = {roc_auc[i]:0.2f})')
+plt.plot([0, 1], [0, 1], 'k--')
 plt.xlim([0.0, 1.0])
 plt.ylim([0.0, 1.05])
 plt.xlabel('False Positive Rate')
 plt.ylabel('True Positive Rate')
 plt.title('Receiver Operating Characteristic (ROC) Curve')
-plt.legend(loc='lower right')
+plt.legend(loc="lower right")
 plt.show()

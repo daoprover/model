@@ -88,7 +88,7 @@ graph_helper = GraphHelper()
 graphs = []
 labels = []
 
-for filepath in files[:100]:
+for filepath in files:
     if filepath.endswith('.gexf'):
         graph, label = graph_helper.load_transaction_graph_from_gexf(f'{BASE_DIR}/{filepath}')
         graph_pyg = from_networkx(graph)
@@ -101,7 +101,7 @@ for filepath in files[:100]:
             labels.append(label)
         else:
             labels.append("white")
-
+        print("label: ", label)
         graphs.append(graph_pyg)
 
 label_encoder = LabelEncoder()
