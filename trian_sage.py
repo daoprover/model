@@ -37,7 +37,7 @@ graphs = []
 labels = []
 
 # Ensure some sample graphs are created and saved with labels
-for filepath in files:
+for filepath in files[:100]:
     if filepath.endswith('.gexf'):
         graph, label = graph_helper.load_transaction_graph_from_gexf(f'{BASE_DIR}/{filepath}')
         print(f"Loaded label: {label}")  # Verify the label is loaded correctly
@@ -49,9 +49,14 @@ for filepath in files:
 
         # Use the label loaded from the GEXF file or add a default label if not present
         if label is not None:
+
+            if label != "white":
+                label = "anomaly"
             labels.append(label)
+            print(f"Loaded label: {label}")  # Verify the label is loaded correctly
+
         else:
-            labels.append("default_label")
+            labels.append("white")
 
         graphs.append(graph_pyg)
 
@@ -100,7 +105,7 @@ for epoch in range(100):
 
 model.eval()
 
-torch.save(model.state_dict(), "sage_model.h5")
+torch.save(model.state_dict(), "sage_model_bruh.h5")
 
 # Testing
 correct = 0
