@@ -16,7 +16,6 @@ import torch
 from torch_geometric.loader import DataLoader
 from torch_geometric.utils import from_networkx
 
-# Define the model architecture (ensure this matches the saved model architecture)
 class Autoencoder(torch.nn.Module):
     def __init__(self, input_dim, hidden_dim, encoded_dim):
         super(Autoencoder, self).__init__()
@@ -24,11 +23,17 @@ class Autoencoder(torch.nn.Module):
             torch.nn.Linear(input_dim, hidden_dim),
             torch.nn.ReLU(),
             torch.nn.Dropout(0.2),
+            torch.nn.Linear(hidden_dim, hidden_dim),  # Additional hidden layer
+            torch.nn.ReLU(),
+            torch.nn.Dropout(0.2),
             torch.nn.Linear(hidden_dim, encoded_dim),
             torch.nn.ReLU(),
         )
         self.decoder = torch.nn.Sequential(
             torch.nn.Linear(encoded_dim, hidden_dim),
+            torch.nn.ReLU(),
+            torch.nn.Dropout(0.2),
+            torch.nn.Linear(hidden_dim, hidden_dim),
             torch.nn.ReLU(),
             torch.nn.Dropout(0.2),
             torch.nn.Linear(hidden_dim, input_dim),
@@ -44,9 +49,9 @@ class GraphSAGEWithAutoencoder(torch.nn.Module):
     def __init__(self, input_dim, hidden_dim, encoded_dim, num_classes):
         super(GraphSAGEWithAutoencoder, self).__init__()
         self.autoencoder = Autoencoder(input_dim, hidden_dim, encoded_dim)
-        self.conv1 = SAGEConv(encoded_dim, 32)
-        self.conv2 = SAGEConv(32, 32)
-        # Adjust the dimensions of fc layer to match the saved model
+        self.conv1 = SAGEConv(encoded_dim, 64)  # Increase output dimension
+        self.conv2 = SAGEConv(64, 64)  # Increase input and output dimensions
+        self.conv3 = SAGEConv(64, 32)  # Additional convolutional layer
         self.fc = torch.nn.Linear(32, num_classes)
 
     def forward(self, data):
@@ -56,9 +61,11 @@ class GraphSAGEWithAutoencoder(torch.nn.Module):
         x = F.relu(x)
         x = self.conv2(x, edge_index)
         x = F.relu(x)
+        x = self.conv3(x, edge_index)  # Apply the third convolutional layer
+        x = F.relu(x)
         x = torch.mean(x, dim=0, keepdim=True)
         x = self.fc(x)
-        return F.log_softmax(x, dim=1)
+        return torch.sigmoid(x)
 
 
 def validate(loader, model):
@@ -118,7 +125,6 @@ print("Unique labels and their encoded values:")
 for label, encoded_label in zip(label_encoder.classes_, range(len(label_encoder.classes_))):
     print(f"{label}: {encoded_label}")
 
-print("Encoded labels:", encoded_labels)
 assert max(encoded_labels) < len(label_encoder.classes_), "Encoded label exceeds number of classes"
 
 for i, graph_pyg in enumerate(graphs):

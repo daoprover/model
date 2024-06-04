@@ -18,11 +18,17 @@ class Autoencoder(torch.nn.Module):
             torch.nn.Linear(input_dim, hidden_dim),
             torch.nn.ReLU(),
             torch.nn.Dropout(0.2),
+            torch.nn.Linear(hidden_dim, hidden_dim),  # Additional hidden layer
+            torch.nn.ReLU(),
+            torch.nn.Dropout(0.2),
             torch.nn.Linear(hidden_dim, encoded_dim),
             torch.nn.ReLU(),
         )
         self.decoder = torch.nn.Sequential(
             torch.nn.Linear(encoded_dim, hidden_dim),
+            torch.nn.ReLU(),
+            torch.nn.Dropout(0.2),
+            torch.nn.Linear(hidden_dim, hidden_dim),  # Additional hidden layer
             torch.nn.ReLU(),
             torch.nn.Dropout(0.2),
             torch.nn.Linear(hidden_dim, input_dim),
@@ -38,8 +44,9 @@ class GraphSAGEWithAutoencoder(torch.nn.Module):
     def __init__(self, input_dim, hidden_dim, encoded_dim, num_classes):
         super(GraphSAGEWithAutoencoder, self).__init__()
         self.autoencoder = Autoencoder(input_dim, hidden_dim, encoded_dim)
-        self.conv1 = SAGEConv(encoded_dim, 32)
-        self.conv2 = SAGEConv(32, 32)
+        self.conv1 = SAGEConv(encoded_dim, 64)  # Increase output dimension
+        self.conv2 = SAGEConv(64, 64)  # Increase input and output dimensions
+        self.conv3 = SAGEConv(64, 32)  # Additional convolutional layer
         self.fc = torch.nn.Linear(32, num_classes)
 
     def forward(self, data):
@@ -49,16 +56,19 @@ class GraphSAGEWithAutoencoder(torch.nn.Module):
         x = F.relu(x)
         x = self.conv2(x, edge_index)
         x = F.relu(x)
+        x = self.conv3(x, edge_index)  # Apply the third convolutional layer
+        x = F.relu(x)
         x = torch.mean(x, dim=0, keepdim=True)
         x = self.fc(x)
-        return F.log_softmax(x, dim=1)
+        return torch.sigmoid(x)
+
 
 def initialize_weights(model):
     for m in model.modules():
         if isinstance(m, torch.nn.Linear):
             torch.nn.init.xavier_uniform_(m.weight)
             if m.bias is not None:
-                m.bias.data.fill_(0.01)
+                m.bias.data.fill_(0.001)
 
 def print_gradients(model):
     for name, param in model.named_parameters():
@@ -119,7 +129,7 @@ num_classes = len(label_encoder.classes_)
 
 autoencoder = Autoencoder(input_dim, hidden_dim, encoded_dim)
 initialize_weights(autoencoder)
-autoencoder_optimizer = torch.optim.Adam(autoencoder.parameters(), lr=1e-3, weight_decay=5e-4)
+autoencoder_optimizer = torch.optim.Adam(autoencoder.parameters(), lr=1e-5, weight_decay=5e-4)
 
 # Ensure all parameters require gradients
 for name, param in autoencoder.named_parameters():
@@ -136,7 +146,7 @@ torch.save(autoencoder.state_dict(), "autoencoder.pth")
 model = GraphSAGEWithAutoencoder(input_dim, hidden_dim, encoded_dim, num_classes)
 model.autoencoder.load_state_dict(torch.load("autoencoder.pth"))
 
-optimizer = torch.optim.Adam(model.parameters(), lr=1e-3, weight_decay=5e-4)
+optimizer = torch.optim.Adam(model.parameters(), lr=1e-5, weight_decay=5e-4)
 
 def train(loader, model, optimizer):
     model.train()
