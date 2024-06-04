@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 from torch_geometric.loader import DataLoader
 from torch_geometric.utils import from_networkx
 import torch
-from torch_geometric.nn import SAGEConv, global_max_pool
+from torch_geometric.nn import GINEConv, global_max_pool
 import torch.nn as nn
 import torch.nn.functional as F
 from sklearn.preprocessing import LabelEncoder, label_binarize
@@ -13,11 +13,23 @@ from sklearn.metrics import confusion_matrix, classification_report, roc_curve, 
 from utils.graph import GraphHelper
 
 
-class GraphSAGE(torch.nn.Module):
+class GraphGINConv(torch.nn.Module):
     def __init__(self, in_channels, edge_in_channels, num_classes=2):
-        super(GraphSAGE, self).__init__()
-        self.conv1 = SAGEConv(in_channels, 16)
-        self.conv2 = SAGEConv(16, 16)
+        super(GraphGINConv, self).__init__()
+        nn1 = nn.Sequential(
+            nn.Linear(in_channels, 16),
+            nn.ReLU(),
+            nn.Linear(16, 16)
+        )
+        self.conv1 = GINEConv(nn1, edge_dim=edge_in_channels)
+
+        nn2 = nn.Sequential(
+            nn.Linear(16, 16),
+            nn.ReLU(),
+            nn.Linear(16, 16)
+        )
+        self.conv2 = GINEConv(nn2, edge_dim=edge_in_channels)
+
         self.fc1 = torch.nn.Linear(16, 32)
         self.fc2 = torch.nn.Linear(32, num_classes)
         self.dropout = torch.nn.Dropout(p=0.3)
@@ -115,7 +127,7 @@ print("Number of classes:", num_classes)
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 # Define your model and optimizer
-model = GraphSAGE(in_channels=2, edge_in_channels=len(edge_features[0]), num_classes=num_classes).to(
+model = GraphGINConv(in_channels=2, edge_in_channels=len(edge_features[0]), num_classes=num_classes).to(
     device)  # Adjust in_channels based on your features
 optimizer = torch.optim.Adam(model.parameters(), lr=1e-4, weight_decay=5e-4)
 
@@ -143,4 +155,68 @@ for epoch in range(100):
 
 model.eval()
 
-torch.save(model.state_dict(), "sage_model_new.h5")
+torch.save(model.state_dict(), "gin_model_new.h5")
+
+# Testing
+correct = 0
+all_preds = []
+all_labels = []
+all_probs = []
+with torch.no_grad():
+    for data in loader:
+        data = data.to(device)  # Move data to GPU
+        out = model(data)
+        prob = torch.exp(out)  # Convert log probabilities to probabilities
+        _, preds = out.max(dim=1)
+        correct += int((preds == data.y).sum())
+        all_preds.extend(preds.cpu().numpy())
+        all_labels.extend(data.y.cpu().numpy())
+        all_probs.extend(prob.cpu().numpy())  # Store all probabilities
+
+accuracy = correct / len(loader.dataset)
+print(f'Accuracy: {accuracy:.4f}')
+
+# Plot confusion matrix
+cm = confusion_matrix(all_labels, all_preds)
+plt.figure(figsize=(8, 6))
+plt.imshow(cm, interpolation='nearest', cmap=plt.cm.Blues)
+plt.title('Confusion Matrix')
+plt.colorbar()
+tick_marks = np.arange(num_classes)
+plt.xticks(tick_marks, label_encoder.classes_, rotation=45)
+plt.yticks(tick_marks, label_encoder.classes_)
+plt.ylabel('True Label')
+plt.xlabel('Predicted Label')
+plt.show()
+
+# Classification report
+print(classification_report(all_labels, all_preds, target_names=label_encoder.classes_, zero_division=0))
+
+# Binarize the labels for ROC curve
+all_labels_bin = label_binarize(all_labels, classes=range(num_classes))
+all_probs = np.array(all_probs)
+
+# Compute ROC curve and ROC area for each class
+fpr = dict()
+tpr = dict()
+roc_auc = dict()
+for i in range(num_classes):
+    fpr[i], tpr[i], _ = roc_curve(all_labels_bin[:, i], all_probs[:, i])
+    roc_auc[i] = auc(fpr[i], tpr[i])
+
+# Plot all ROC curves
+plt.figure(figsize=(10, 8))
+colors = ['aqua', 'darkorange', 'cornflowerblue', 'red', 'green', 'blue', 'yellow', 'black', 'purple',
+          'brown']  # Add more colors if necessary
+for i, color in zip(range(num_classes), colors):
+    plt.plot(fpr[i], tpr[i], color=color, lw=2,
+             label=f'ROC curve of class {label_encoder.classes_[i]} (area = {roc_auc[i]:.2f})')
+
+plt.plot([0, 1], [0, 1], 'k--', lw=2)
+plt.xlim([0.0, 1.0])
+plt.ylim([0.0, 1.05])
+plt.xlabel('False Positive Rate')
+plt.ylabel('True Positive Rate')
+plt.title('Receiver Operating Characteristic (ROC) Curve')
+plt.legend(loc='lower right')
+plt.show()
