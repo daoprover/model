@@ -87,7 +87,6 @@ def train_autoencoder(loader, model, optimizer):
         loss.backward()
         optimizer.step()
         total_loss += loss.item()
-        print_gradients(model)
     return total_loss / len(loader)
 
 # Main script

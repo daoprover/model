@@ -12,6 +12,7 @@ from sklearn.metrics import confusion_matrix, classification_report, roc_curve, 
 
 from utils.graph import GraphHelper
 
+
 class GraphSAGE(torch.nn.Module):
     def __init__(self, in_channels, num_classes=2):
         super(GraphSAGE, self).__init__()
@@ -38,6 +39,7 @@ class GraphSAGE(torch.nn.Module):
         x = self.fc2(x)
         return F.log_softmax(x, dim=1)
 
+
 # Main script
 BASE_DIR = './assets/graphs'
 files = os.listdir(BASE_DIR)
@@ -47,13 +49,23 @@ graphs = []
 labels = []
 
 # Ensure some sample graphs are created and saved with labels
-for filepath in files:
+for filepath in files[:100]:
     if filepath.endswith('.gexf'):
         graph, label = graph_helper.load_transaction_graph_from_gexf(f'{BASE_DIR}/{filepath}')
         graph_pyg = from_networkx(graph)
 
-        num_nodes = graph_pyg.num_nodes
-        graph_pyg.x = torch.tensor(np.random.rand(num_nodes, 2), dtype=torch.float)
+        # Extract node features
+        node_features = []
+        for node in graph.nodes(data=True):
+            if 'feature' in node[1]:
+                node_features.append(node[1]['feature'])
+            else:
+                # Provide a default feature vector, e.g., a zero vector
+                default_feature = np.zeros(2)  # Assuming the feature size is 2
+                node_features.append(default_feature)
+
+        # Convert node features to tensor
+        graph_pyg.x = torch.tensor(node_features, dtype=torch.float)
 
         if label is not None:
             if label != "white":
@@ -93,6 +105,7 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 model = GraphSAGE(in_channels=2, num_classes=num_classes).to(device)  # Adjust in_channels based on your features
 optimizer = torch.optim.Adam(model.parameters(), lr=1e-4, weight_decay=5e-4)
 
+
 def train(loader):
     model.train()
     total_loss = 0
@@ -107,6 +120,7 @@ def train(loader):
         total_loss += loss.item()
     return total_loss / len(loader)
 
+
 # Training loop
 for epoch in range(100):
     print(f"Epoch {epoch}")
@@ -115,7 +129,7 @@ for epoch in range(100):
 
 model.eval()
 
-torch.save(model.state_dict(), "sage_model_new.h5")
+torch.save(model.state_dict(), "sage_model_new_v2.h5")
 
 # Testing
 correct = 0
@@ -149,33 +163,21 @@ plt.ylabel('True Label')
 plt.xlabel('Predicted Label')
 plt.show()
 
-# Classification report
 print(classification_report(all_labels, all_preds, target_names=label_encoder.classes_, zero_division=0))
 
 # Binarize the labels for ROC curve
-all_labels_bin = label_binarize(all_labels, classes=range(num_classes))
+all_labels_bin = label_binarize(all_labels, classes=range(2))
 all_probs = np.array(all_probs)
 
-# Compute ROC curve and ROC area for each class
-fpr = dict()
-tpr = dict()
-roc_auc = dict()
-for i in range(num_classes):
-    fpr[i], tpr[i], _ = roc_curve(all_labels_bin[:, i], all_probs[:, i])
-    roc_auc[i] = auc(fpr[i], tpr[i])
+all_probs_np = np.vstack(all_probs)
+all_labels_np = np.array(all_labels)
 
-# Plot all ROC curves
-plt.figure(figsize=(10, 8))
-colors = ['aqua', 'darkorange', 'cornflowerblue', 'red', 'green', 'blue', 'yellow', 'black', 'purple', 'brown']  # Add more colors if necessary
-for i, color in zip(range(num_classes), colors):
-    plt.plot(fpr[i], tpr[i], color=color, lw=2,
-             label=f'ROC curve of class {label_encoder.classes_[i]} (area = {roc_auc[i]:.2f})')
+fpr, tpr, _ = roc_curve(all_labels_bin, all_probs_np[:, 0])
+roc_auc = auc(tpr, fpr)
 
-plt.plot([0, 1], [0, 1], 'k--', lw=2)
-plt.xlim([0.0, 1.0])
-plt.ylim([0.0, 1.05])
-plt.xlabel('False Positive Rate')
-plt.ylabel('True Positive Rate')
-plt.title('Receiver Operating Characteristic (ROC) Curve')
-plt.legend(loc='lower right')
+# Plot ROC curve
+plt.figure()
+plt.plot(tpr, fpr, label=f'ROC Curve (AUC = {roc_auc:0.2f})')
 plt.show()
+
+
