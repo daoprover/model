@@ -61,7 +61,7 @@ graphs = []
 labels = []
 
 # Ensure some sample graphs are created and saved with labels
-for filepath in files[:100]:
+for filepath in filescop:
     if filepath.endswith('.gexf'):
         graph, label = graph_helper.load_transaction_graph_from_gexf(f'{BASE_DIR}/{filepath}')
         graph_pyg = from_networkx(graph)
@@ -141,6 +141,9 @@ def train(loader):
         out = model(data)
         assert torch.max(data.y) < out.shape[1], "Target label out of bounds for the number of classes"
         loss = F.nll_loss(out, data.y)
+        # print("loss ", loss.item())
+        # print("out ", out)
+        # print("data.y ", data.y)
         loss.backward()
         optimizer.step()
         total_loss += loss.item()
@@ -193,30 +196,16 @@ plt.show()
 print(classification_report(all_labels, all_preds, target_names=label_encoder.classes_, zero_division=0))
 
 # Binarize the labels for ROC curve
-all_labels_bin = label_binarize(all_labels, classes=range(num_classes))
+all_labels_bin = label_binarize(all_labels, classes=range(2))
 all_probs = np.array(all_probs)
 
-# Compute ROC curve and ROC area for each class
-fpr = dict()
-tpr = dict()
-roc_auc = dict()
-for i in range(num_classes):
-    fpr[i], tpr[i], _ = roc_curve(all_labels_bin[:, i], all_probs[:, i])
-    roc_auc[i] = auc(fpr[i], tpr[i])
+all_probs_np = np.vstack(all_probs)
+all_labels_np = np.array(all_labels)
 
-# Plot all ROC curves
-plt.figure(figsize=(10, 8))
-colors = ['aqua', 'darkorange', 'cornflowerblue', 'red', 'green', 'blue', 'yellow', 'black', 'purple',
-          'brown']  # Add more colors if necessary
-for i, color in zip(range(num_classes), colors):
-    plt.plot(fpr[i], tpr[i], color=color, lw=2,
-             label=f'ROC curve of class {label_encoder.classes_[i]} (area = {roc_auc[i]:.2f})')
+fpr, tpr, _ = roc_curve(all_labels_bin, all_probs_np[:, 0])
+roc_auc = auc(tpr, fpr)
 
-plt.plot([0, 1], [0, 1], 'k--', lw=2)
-plt.xlim([0.0, 1.0])
-plt.ylim([0.0, 1.05])
-plt.xlabel('False Positive Rate')
-plt.ylabel('True Positive Rate')
-plt.title('Receiver Operating Characteristic (ROC) Curve')
-plt.legend(loc='lower right')
+# Plot ROC curve
+plt.figure()
+plt.plot(tpr, fpr, label=f'ROC Curve (AUC = {roc_auc:0.2f})')
 plt.show()
