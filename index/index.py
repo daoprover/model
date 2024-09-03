@@ -2,11 +2,14 @@ import os
 import time as t
 from pathlib import Path
 
+import sys
+sys.path.insert(1, os.path.join(sys.path[0], ".."))
+
 from utils.dataset import Dataset
 from utils.graph import GraphHelper
 
 if __name__ == "__main__":
-    labeled_addresses = Dataset(Path('assets/BitcoinHeistData.csv')).prepare_dateset()
+    labeled_addresses = Dataset(Path('./assets/BitcoinHeistData.csv')).prepare_dateset()
     print(len(labeled_addresses))
     graphHelper = GraphHelper()
     i = 0

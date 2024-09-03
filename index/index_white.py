@@ -1,6 +1,10 @@
 import os
 import time as t
 from pathlib import Path
+import sys
+import os
+
+sys.path.insert(1, os.path.join(sys.path[0], ".."))
 
 from utils.dataset import Dataset
 from utils.graph import GraphHelper
@@ -10,8 +14,9 @@ if __name__ == "__main__":
     # print(len(labeled_addresses))
     graphHelper = GraphHelper()
     i = 0
-    for block in range(600000, 600004):
-        addresses = graphHelper.get_white_addresses(block)
+    blocks = [123152, 312731, 389893,463234,456139, 643044, 34534, 121898, 704000, 704564, 750555, 230234, 541244, 1214, 335633, 340034, 294516, 3156,85324, 165948]
+    for block in blocks:
+        addresses = graphHelper.get_white_addresses(block)[:50]
         print("addresses: ", addresses)
         for address in addresses:
             address_file = f"assets/graphs/{address}.gexf"
@@ -34,7 +39,7 @@ if __name__ == "__main__":
             i += 1
             t.sleep(4)
 
-    labeled_addresses = Dataset(Path('assets/BitcoinHeistData.csv')).prepare_dateset()
+    labeled_addresses = Dataset(Path('../assets/BitcoinHeistData.csv')).prepare_dateset()
     print(len(labeled_addresses))
     graphHelper = GraphHelper()
     i = 0
