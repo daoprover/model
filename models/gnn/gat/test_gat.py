@@ -4,9 +4,10 @@ from pathlib import Path
 from torch_geometric.loader import DataLoader
 import torch
 import logging
-from sklearn.preprocessing import LabelEncoder, label_binarize
+from sklearn.preprocessing import LabelEncoder
 
 from dataset.data_loader import GraphDatasetLoader
+from models.gnn.gat.hyperparams import GatHyperParams
 from tester.tester import Tester
 
 sys.path.insert(1, os.path.join(sys.path[0], "../../.."))
@@ -14,21 +15,24 @@ sys.path.insert(1, os.path.join(sys.path[0], "../../.."))
 from models.gnn.gat.model import GraphGINConv
 
 
-def test_gat(dataset_path: Path, model_path: Path, logger: logging.Logger, labels=None):
-    if labels is None:
-        labels = ["anomaly", "white"]
-    label_encoder = LabelEncoder()
-    label_encoder.fit(labels)
+class TestGAT(Tester):
+    def __init__(self, hyperparams: GatHyperParams, logger: logging.Logger, labels=None):
+        if labels is None:
+            labels = ["anomaly", "white"]
+        self.label_encoder = LabelEncoder()
+        self.label_encoder.fit(labels)
+        self.hyperparams = hyperparams
+        dataset = GraphDatasetLoader(base_dir=hyperparams.dataset.test, label_encoder=self.label_encoder, logger=logger)
+        self.loader = DataLoader(dataset, batch_size=self.hyperparams.testing.batch_size, shuffle=False)
 
-    dataset = GraphDatasetLoader(base_dir=dataset_path, label_encoder=label_encoder, logger=logger)
-    loader = DataLoader(dataset, batch_size=32, shuffle=True)
+        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        self.model = GraphGINConv(in_channels=2, edge_in_channels=2, num_classes=len(labels)).to(self.device)
+        self.model.load_state_dict((torch.load(model_path, weights_only=True)))
+        self.model.eval()
+        self.logger = logger
 
-    model = GraphGINConv(in_channels=2, edge_in_channels=2, num_classes=len(labels)).to(device)
-    model.load_state_dict((torch.load(model_path, weights_only=True)))
-    model.eval()
+        super().__init__(device=self.device, logger=self.logger, model=self.model)
 
-    tester = Tester(device, model, logger)
-    tester.test(loader, label_encoder)
-
+    def test(self):
+        super().test(self.loader, self.label_encoder)

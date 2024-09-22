@@ -4,6 +4,7 @@ import sys
 import os
 import logging
 
+import pandas as pd
 
 sys.path.insert(1, os.path.join(sys.path[0], ".."))
 

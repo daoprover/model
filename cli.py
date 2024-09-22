@@ -6,12 +6,15 @@ import os
 from enum import IntEnum
 import logging
 
+import models
 from rich.logging import RichHandler
 import absl.logging
 
 from typing_extensions import Annotated
 
 from index.index import Indexer
+from models.gnn.gat.hyperparams import GatHyperParams
+from models.gnn.gat.test_gat import TestGAT
 
 sys.path.insert(1, os.path.join(sys.path[0], "../.."))
 
@@ -37,29 +40,6 @@ class VerboseMode(IntEnum):
 
 @app.command()
 def index_white_addresses(
-        save_path: Annotated[
-            Path,
-            typer.Option(
-                help="Abs path to save dataset"
-            )
-        ],
-        start_block: Annotated[
-            int,
-            typer.Option(
-                help="Block number to start indexing"
-            )
-        ],
-        end_block: Annotated[
-            int, typer.Option(
-                help="Block number to end indexing"
-            )
-        ],
-        step: Annotated[
-            int,
-            typer.Option(
-                help="Step number to start indexing"
-            )
-        ],
         verbose: Annotated[
             int,
             typer.Option(
@@ -76,8 +56,18 @@ def index_white_addresses(
     logger = _get_logger(level=VerboseMode(verbose).log_level())
 
     try:
-        indexer = Indexer()
-        indexer.index_white(save_path, list(range(start_block, end_block, step)), 10)
+        hyperparams = GatHyperParams()
+    except Exception as e:
+        logger.exception("Failed to initialize the ModelTester instance. Aborting...")
+        return
+
+    try:
+        indexer = Indexer(logger)
+        indexer.index_white(
+            hyperparams.dataset.raw_dataset,
+            list(range(hyperparams.dataset.start_block, hyperparams.dataset.end_block, hyperparams.dataset.step)),
+            hyperparams.dataset.txs_per_block
+        )
 
     except Exception as e:
         logger.exception("Error while indexing new transactions. Aborting...")
@@ -88,19 +78,6 @@ def index_white_addresses(
 
 @app.command()
 def index_marked_addresses(
-        save_path: Annotated[
-            Path,
-            typer.Option(
-                help="Abs path to save dataset"
-            )
-        ],
-        csv_path: Annotated[
-            Path,
-            typer.Option(
-                help="Path of csv file with all black addresses"
-            )
-        ],
-
         verbose: Annotated[
             int,
             typer.Option(
@@ -117,11 +94,50 @@ def index_marked_addresses(
     logger = _get_logger(level=VerboseMode(verbose).log_level())
 
     try:
-        indexer = Indexer()
-        indexer.index_black_addresses(save_path, csv_path)
+        hyperparams = GatHyperParams()
+    except Exception as e:
+        logger.exception("Failed to initialize the ModelTester instance. Aborting...")
+        return
+
+    try:
+        indexer = Indexer(logger)
+        indexer.index_black_addresses(hyperparams.dataset.raw_dataset, hyperparams.dataset.raw_dataset_csv)
 
     except Exception as e:
         logger.exception("Error while indexing new transactions. Aborting...")
+        return
+
+    logger.info("Done! Exiting...")
+
+@app.command()
+def test_gat(
+        verbose: Annotated[
+            int,
+            typer.Option(
+                help="Whether to print the logs. 0 to set WARNING level only, 1 for INFO, 2 for showing triplet_network summary and debug"
+            ),
+        ] = 1,
+) -> None:
+    """
+    Test the model
+    ### Args:
+        See the help for each argument
+    """
+
+    logger = _get_logger(level=VerboseMode(verbose).log_level())
+
+    try:
+        hyperparams = GatHyperParams()
+    except Exception as e:
+        logger.exception("Failed to initialize the ModelTester instance. Aborting...")
+        return
+
+    try:
+        indexer = TestGAT(hyperparams,  logger)
+        indexer.test()
+
+    except Exception as e:
+        logger.exception("Error while testing the model. Aborting...")
         return
 
     logger.info("Done! Exiting...")
