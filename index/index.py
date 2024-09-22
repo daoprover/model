@@ -1,38 +1,62 @@
-import os
 import time as t
 from pathlib import Path
-
 import sys
+import os
+import logging
+
+
 sys.path.insert(1, os.path.join(sys.path[0], ".."))
 
-from utils.dataset import Dataset
 from utils.graph import GraphHelper
 
-if __name__ == "__main__":
-    labeled_addresses = Dataset(Path('./assets/BitcoinHeistData.csv')).prepare_dateset()
-    print(len(labeled_addresses))
-    graphHelper = GraphHelper()
-    i = 0
 
-    for address in labeled_addresses:
-        address_file = f"assets/graphs/{address[0]}.gexf"
+class Indexer:
+    def __init__(self, logger: logging.Logger, sleep_time=4):
+        self.sleep_time = sleep_time
+        self.logger = logger
+
+    def index_white(self, save_path, block_numbers: list[int], tx_per_block: int = 50):
+        graph_helper = GraphHelper()
+        i = 0
+
+        for block in block_numbers:
+            addresses = graph_helper.get_white_addresses(block)[:tx_per_block]
+            for address in addresses:
+                self.__process_address_info(save_path, address, graph_helper)
+
+                self.logger.debug("i:", i)
+                i += 1
+                t.sleep(self.sleep_time)
+
+    def index_black_addresses(self, save_path: Path, csv_path: Path):
+        labeled_addresses = [(item[0], item[9]) for item in pd.read_csv(csv_path).values]
+
+        print(len(labeled_addresses))
+
+        graphHelper = GraphHelper()
+
+        i = 0
+
+        for address in labeled_addresses:
+            self.__process_address_info(save_path, address[0], graphHelper)
+
+            self.logger.debug("i:", i)
+            i += 1
+            t.sleep(self.sleep_time)
+
+    def __process_address_info(self, save_path: Path, address: str, graph_helper: GraphHelper):
+        address_file = f"{save_path}/{address}.gexf"
 
         if os.path.exists(address_file):
-            print(f"File for address {address[0]} already exists. Skipping...")
-            continue
+            self.logger.debug(f"File for address {address} already exists. Skipping...")
+            return
 
-        print("address:", address)
-        transactions = graphHelper.get_transactions(address[0])
+        self.logger.debug("address:", address)
+        transactions = graph_helper.get_transactions(address)
 
         if transactions:
-            print("Transactions for address:", address)
-            graph = graphHelper.build_transaction_graph(transactions)
-            graphHelper.save_transaction_graph_to_gexf(graph, address_file, address[1])
+            self.logger.debug("Transactions for address:", address)
+            graph = graph_helper.build_transaction_graph(transactions)
+            graph_helper.save_transaction_graph_to_gexf(graph, address_file, "white")
         else:
-            print("No transactions found.")
-
-        print("i:", i)
-        i += 1
-        t.sleep(4)
-
-
+            self.logger.error("No transactions found.")

@@ -1,11 +1,12 @@
-
 import requests
 import networkx as nx
 import matplotlib.pyplot as plt
+import logging
+
 
 class GraphHelper:
-    def __init__(self):
-        pass
+    def __init__(self, logger: logging.Logger ):
+        self.logger = logger
 
     def build_transaction_graph(self, transactions):
         G = nx.DiGraph()
@@ -38,54 +39,19 @@ class GraphHelper:
         return G
 
     def save_transaction_graph_to_gexf(self, G, filepath, label=None):
-        print("label: ", label)
+        self.logger.debug("label: ", label)
         if label is not None:
-            print("Label is added")
+            self.logger.debug("Label is added")
             G.graph['name'] = label
         else:
-            print("Default_label is added")
+            self.logger.debug("Default_label is added")
             G.graph['name'] = "default_label"
-        nx.write_gexf(G, filepath )
+        nx.write_gexf(G, filepath)
 
     def load_transaction_graph_from_gexf(self, filepath):
         G = nx.read_gexf(filepath)
         label = G.graph.get('name')
         return G, label
-
-    # def build_graph_from_files(self, filepath):
-    #     # Read node and edge data from files
-    #     nodes_df = pd.read_csv(filepath + '_nodes.csv')
-    #     edges_df = pd.read_csv(filepath + '_edges.csv')
-    #
-    #     # Extract node IDs and edge information
-    #     nodes = nodes_df['node_id'].tolist()
-    #     edges = [(source, target) for source, target in zip(edges_df['source'], edges_df['target'])]
-    #
-    #     # Build adjacency matrix
-    #     n_nodes = len(nodes)
-    #     a = np.zeros((n_nodes, n_nodes))
-    #     for source, target in edges:
-    #         source_idx = nodes.index(source)
-    #         target_idx = nodes.index(target)
-    #         a[source_idx, target_idx] = 1
-    #
-    #     # Extract node features (dummy features for demonstration)
-    #     x = torch.tensor(np.random.rand(n_nodes, 2), dtype=torch.float)
-    #
-    #     # Extract edge features (if available)
-    #     edge_attrs = ['amount', 'fee', 'size', 'timestamp']
-    #     edge_features = edges_df[edge_attrs].values
-    #     e = torch.tensor(edge_features, dtype=torch.float)
-    #
-    #     # Create the PyTorch Geometric Data object
-    #     data = Data(x=x, edge_index=torch.tensor(edges).t().contiguous(), edge_attr=e)
-    #
-    #     return data
-
-    # def load_labels_from_file(self, filepath):
-    #     with open(filepath + '_label.txt', 'r') as f:
-    #         labels = f.read().splitlines()
-    #     return labels
 
     def show(self, graph):
         layout = nx.spring_layout(graph)
@@ -108,7 +74,7 @@ class GraphHelper:
             transactions = data['txs']
             return transactions
         else:
-            print("Error fetching data:", response.status_code)
+            self.logger.debug("Error fetching data:", response.status_code)
             return None
 
     def get_white_addresses(self, block_id):
@@ -122,11 +88,11 @@ class GraphHelper:
             for tx in transactions:
                 inputs = tx['inputs']
                 for input in inputs:
-                   try:
+                    try:
                         address = input["addr"]
                         addresses.append(address)
-                   except KeyError:
-                       continue
+                    except KeyError:
+                        continue
                 outs = tx['out']
                 for out in outs:
                     try:
@@ -136,5 +102,5 @@ class GraphHelper:
                         continue
             return addresses
         else:
-            print("Error fetching data:", response.status_code)
+            self.logger.error("Error fetching data:", response.status_code)
             return None
