@@ -23,7 +23,7 @@ class GraphGINConv(torch.nn.Module):
 
         self.fc1 = torch.nn.Linear(16, 32)
         self.fc2 = torch.nn.Linear(32, num_classes)
-        self.dropout = torch.nn.Dropout(p=0.3)
+        self.dropout = torch.nn.Dropout(p=0.25)
         self.norm1 = nn.LayerNorm(16)
         self.norm2 = nn.LayerNorm(32)
 

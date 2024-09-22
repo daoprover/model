@@ -1,93 +1,41 @@
 import os
+import sys
 import numpy as np
 import matplotlib.pyplot as plt
 from torch_geometric.loader import DataLoader
-from torch_geometric.utils import from_networkx
 import torch
 from sklearn.preprocessing import LabelEncoder, label_binarize
 from sklearn.metrics import confusion_matrix, classification_report, roc_curve, auc
+
+from dataset.data_loader import GraphDataset
+
+sys.path.insert(1, os.path.join(sys.path[0], "../../.."))
 
 from models.gnn.gat.model import GraphGINConv
 from utils.graph import GraphHelper
 
 # Main script
-BASE_DIR = './assets/test'
-files = os.listdir(BASE_DIR)
+BASE_DIR = '/home/sempai/Desktop/Projects/validation-model/assets/test'
 
-graph_helper = GraphHelper()
-graphs = []
-labels = []
 
-# Ensure some sample graphs are created and saved with labels
-for filepath in filescop:
-    if filepath.endswith('.gexf'):
-        graph, label = graph_helper.load_transaction_graph_from_gexf(f'{BASE_DIR}/{filepath}')
-        graph_pyg = from_networkx(graph)
-
-        # Extract node features
-        node_features = []
-        for node in graph.nodes(data=True):
-            if 'feature' in node[1]:
-                node_features.append(node[1]['feature'])
-            else:
-                # Provide a random feature vector if the feature attribute is missing
-                random_feature = np.random.rand(2)  # Assuming the feature size is 2
-                node_features.append(random_feature)
-
-        # Convert node features to tensor
-        graph_pyg.x = torch.tensor(node_features, dtype=torch.float)
-
-        # Extract edge features
-        edge_features = []
-        for edge in graph.edges(data=True):
-            attvalues = edge[2].get('attvalues', {})
-            feature = []
-            for attvalue in attvalues:
-                feature.append(float(attvalue['value']))
-            edge_features.append(feature)
-
-        # Convert edge features to tensor
-        edge_features_tensor = torch.tensor(edge_features, dtype=torch.float)
-        graph_pyg.edge_attr = edge_features_tensor
-
-        if label is not None:
-            if label != "white":
-                label = "anomaly"
-            labels.append(label)
-        else:
-            labels.append("white")
-        print("label: ", label)
-        graphs.append(graph_pyg)
-
+labels = ["anomaly", "white"]
 label_encoder = LabelEncoder()
-encoded_labels = label_encoder.fit_transform(labels)
+label_encoder.fit(labels)
 
-print("Unique labels and their encoded values:")
-for label, encoded_label in zip(label_encoder.classes_, range(len(label_encoder.classes_))):
-    print(f"{label}: {encoded_label}")
+dataset = GraphDataset(base_dir=BASE_DIR, label_encoder=label_encoder)
+loader = DataLoader(dataset, batch_size=32, shuffle=True)
 
-print("Encoded labels:", encoded_labels)
-assert max(encoded_labels) < len(label_encoder.classes_), "Encoded label exceeds number of classes"
 
-for i, graph_pyg in enumerate(graphs):
-    graph_pyg.y = torch.tensor([encoded_labels[i]], dtype=torch.long)
-
-loader = DataLoader(graphs, batch_size=32, shuffle=True)
-
-print("DataLoader created. Verifying batches...")
-for i, batch in enumerate(loader):
-    print(f"Batch {i}: {batch}")
-
-num_classes = len(label_encoder.classes_)
-print("Number of classes:", num_classes)
-
-# Check if GPU is available
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
+
+model = GraphGINConv(in_channels=2, edge_in_channels=2, num_classes=len(labels)).to(device)
 # Define your model and optimizer
-model = GraphGINConv(in_channels=2, edge_in_channels=len(edge_features[0]), num_classes=num_classes).to(
-    device)  # Adjust in_channels based on your features
-optimizer = torch.optim.Adam(model.parameters(), lr=1e-4, weight_decay=5e-4)
+
+model.load_state_dict((torch.load("/home/sempai/Desktop/Projects/validation-model/gin_model_best_v1_new_dataset.h5", weights_only=True )))
+model.eval()
+
+# optimizer = torch.optim.Adam(model.parameters(), lr=1e-4, weight_decay=5e-4)
 
 
 # Testing
@@ -115,7 +63,7 @@ plt.figure(figsize=(8, 6))
 plt.imshow(cm, interpolation='nearest', cmap=plt.cm.Blues)
 plt.title('Confusion Matrix')
 plt.colorbar()
-tick_marks = np.arange(num_classes)
+tick_marks = np.arange(2)
 plt.xticks(tick_marks, label_encoder.classes_, rotation=45)
 plt.yticks(tick_marks, label_encoder.classes_)
 plt.ylabel('True Label')
