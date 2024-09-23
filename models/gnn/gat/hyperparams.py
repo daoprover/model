@@ -8,7 +8,7 @@ class GatHyperParams:
     Class for getting all triplet_network's params
     """
 
-    def __init__(self, path: Path = Path("./hyperparams.json")) -> None:
+    def __init__(self, path: Path = Path("/Users/dl/Projects/daoprover/validation-model/models/gnn/gat/hyperparams.json")) -> None:
         """Init class"""
 
         with open(path, "r") as json_file:

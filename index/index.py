@@ -17,7 +17,7 @@ class Indexer:
         self.logger = logger
 
     def index_white(self, save_path, block_numbers: list[int], tx_per_block: int = 50):
-        graph_helper = GraphHelper()
+        graph_helper = GraphHelper(self.logger)
         i = 0
 
         for block in block_numbers:
@@ -25,7 +25,7 @@ class Indexer:
             for address in addresses:
                 self.__process_address_info(save_path, address, graph_helper)
 
-                self.logger.debug("i:", i)
+                self.logger.info(f"i: {i}", )
                 i += 1
                 t.sleep(self.sleep_time)
 

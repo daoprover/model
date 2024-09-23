@@ -11,7 +11,7 @@ from utils.graph import GraphHelper
 
 
 class GraphDatasetLoader(Dataset):
-    def __init__(self, base_dir, label_encoder, logger: logging.Logger, dataset_size=128):
+    def __init__(self, base_dir, label_encoder, logger: logging.Logger, dataset_size=16):
         self.logger = logger
         self.dataset_size = dataset_size
         self.base_dir = base_dir

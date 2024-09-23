@@ -15,6 +15,8 @@ from typing_extensions import Annotated
 from index.index import Indexer
 from models.gnn.gat.hyperparams import GatHyperParams
 from models.gnn.gat.test_gat import TestGAT
+from models.gnn.gat.train_gat import GatTrainer
+from utils.graph import GraphHelper
 
 sys.path.insert(1, os.path.join(sys.path[0], "../.."))
 
@@ -141,6 +143,62 @@ def test_gat(
         return
 
     logger.info("Done! Exiting...")
+
+@app.command()
+def train_gat(
+        verbose: Annotated[
+            int,
+            typer.Option(
+                help="Whether to print the logs. 0 to set WARNING level only, 1 for INFO, 2 for showing triplet_network summary and debug"
+            ),
+        ] = 1,
+) -> None:
+    """
+    Train the model
+    ### Args:
+        See the help for each argument
+    """
+
+    logger = _get_logger(level=VerboseMode(verbose).log_level())
+
+    try:
+        hyperparams = GatHyperParams()
+    except Exception as e:
+        logger.exception("Failed to initialize the ModelTester instance. Aborting...")
+        return
+
+    try:
+        indexer = GatTrainer(hyperparams,  logger)
+        indexer.train_gat()
+
+    except Exception as e:
+        logger.exception("Error while testing the model. Aborting...")
+        return
+
+    logger.info("Done! Exiting...")
+
+
+@app.command()
+def rebuild_graph(verbose: Annotated[
+    int,
+    typer.Option(
+        help="Whether to print the logs. 0 to set WARNING level only, 1 for INFO, 2 for showing triplet_network summary and debug"
+    ),
+] = 1,):
+
+    logger = _get_logger(level=VerboseMode(verbose).log_level())
+
+    try:
+        hyperparams = GatHyperParams()
+        gh = GraphHelper(logger)
+    except Exception as e:
+        logger.exception("Failed to initialize the ModelTester instance. Aborting...")
+        return
+
+    for file_path in [f for f in os.listdir(hyperparams.dataset.train) if f.endswith('.gexf')]:
+        filepath = os.path.join(hyperparams.dataset.train, file_path)
+        new_path = os.path.join(hyperparams.dataset.raw_dataset, file_path)
+        gh.rebuild_transaction_graph(filepath,  new_path)
 
 
 def _get_logger(level="INFO") -> logging.Logger:

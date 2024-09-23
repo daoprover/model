@@ -8,13 +8,28 @@ class GraphHelper:
     def __init__(self, logger: logging.Logger ):
         self.logger = logger
 
+    import networkx as nx
+
     def build_transaction_graph(self, transactions):
         G = nx.DiGraph()
+
+        # Standard node attributes to ensure consistency across all nodes
+        def initialize_node_attributes():
+            return {
+                'total_sent': 0,
+                'total_received': 0,
+                'num_transactions': 0,
+                'total_fees': 0,
+                'avg_transaction_value': 0,
+                'last_transaction_time': None
+            }
+
         for tx in transactions:
             timestamp = tx['time']
             fee = tx['fee']
             size = tx['size']
 
+            # Extract input and output addresses
             input_addresses = [input_tx['prev_out']['addr']
                                for input_tx in tx['inputs']
                                if 'prev_out' in input_tx
@@ -23,19 +38,49 @@ class GraphHelper:
 
             for input_address in input_addresses:
                 for output_address in output_addresses:
+                    # Calculate total value transferred to the output address
                     value = sum(output_tx['value']
                                 for output_tx in tx['out']
                                 if 'addr' in output_tx
                                 and output_tx['addr'] == output_address)
+
+                    # Edge attributes for the transaction
                     edge_attrs = {
                         'amount': value,
                         'fee': fee,
                         'size': size,
                         'timestamp': timestamp
                     }
-                    G.add_node(input_address)
-                    G.add_node(output_address)
+
+                    # Initialize both input and output nodes if they don't exist
+                    if not G.has_node(input_address):
+                        G.add_node(input_address, **initialize_node_attributes())
+                    if not G.has_node(output_address):
+                        G.add_node(output_address, **initialize_node_attributes())
+
+                    # Update input node (sender) attributes
+                    G.nodes[input_address]['total_sent'] += value
+                    G.nodes[input_address]['total_fees'] += fee
+                    G.nodes[input_address]['num_transactions'] += 1
+                    G.nodes[input_address]['avg_transaction_value'] = (
+                            (G.nodes[input_address]['total_sent'] + G.nodes[input_address]['total_received'])
+                            / G.nodes[input_address]['num_transactions']
+                    )
+                    G.nodes[input_address]['last_transaction_time'] = timestamp
+
+                    # Update output node (receiver) attributes
+                    G.nodes[output_address]['total_received'] += value
+                    G.nodes[output_address]['total_fees'] += fee
+                    G.nodes[output_address]['num_transactions'] += 1
+                    G.nodes[output_address]['avg_transaction_value'] = (
+                            (G.nodes[output_address]['total_sent'] + G.nodes[output_address]['total_received'])
+                            / G.nodes[output_address]['num_transactions']
+                    )
+                    G.nodes[output_address]['last_transaction_time'] = timestamp
+
+                    # Add the edge between input and output addresses with transaction details
                     G.add_edge(input_address, output_address, **edge_attrs)
+
         return G
 
     def save_transaction_graph_to_gexf(self, G, filepath, label=None):
@@ -45,8 +90,48 @@ class GraphHelper:
             G.graph['name'] = label
         else:
             self.logger.debug("Default_label is added")
-            G.graph['name'] = "default_label"
+            G.graph['name'] = "white"
         nx.write_gexf(G, filepath)
+
+
+    def rebuild_transaction_graph(self, filepath, new_path):
+        G, label = self.load_transaction_graph_from_gexf(filepath)
+        for node in G.nodes():
+            G.nodes[node].update({
+                'total_sent': 0,
+                'total_received': 0,
+                'num_transactions': 0,
+                'total_fees': 0,
+                'avg_transaction_value': 0,
+                'last_transaction_time': None
+            })
+
+        for u, v, data in G.edges(data=True):
+            value = data.get('amount', 0)
+            fee = data.get('fee', 0)
+            timestamp = data.get('timestamp', None)
+
+            # Update the sender (u) node attributes
+            G.nodes[u]['total_sent'] += value
+            G.nodes[u]['total_fees'] += fee
+            G.nodes[u]['num_transactions'] += 1
+            G.nodes[u]['last_transaction_time'] = max(G.nodes[u]['last_transaction_time'], timestamp) if G.nodes[u][
+                'last_transaction_time'] else timestamp
+
+            # Update the receiver (v) node attributes
+            G.nodes[v]['total_received'] += value
+            G.nodes[v]['total_fees'] += fee
+            G.nodes[v]['num_transactions'] += 1
+            G.nodes[v]['last_transaction_time'] = max(G.nodes[v]['last_transaction_time'], timestamp) if G.nodes[v][
+                'last_transaction_time'] else timestamp
+
+        # Calculate the average transaction value for each node
+        for node in G.nodes():
+            total_value = G.nodes[node]['total_sent'] + G.nodes[node]['total_received']
+            if G.nodes[node]['num_transactions'] > 0:
+                G.nodes[node]['avg_transaction_value'] = total_value / G.nodes[node]['num_transactions']
+
+        self.save_transaction_graph_to_gexf(G, new_path)
 
     def load_transaction_graph_from_gexf(self, filepath):
         G = nx.read_gexf(filepath)

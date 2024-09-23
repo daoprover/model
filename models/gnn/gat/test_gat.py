@@ -12,7 +12,7 @@ from tester.tester import Tester
 
 sys.path.insert(1, os.path.join(sys.path[0], "../../.."))
 
-from models.gnn.gat.model import GraphGINConv
+from models.gnn.gat.model import GraphGATConv
 
 
 class TestGAT(Tester):
@@ -27,8 +27,8 @@ class TestGAT(Tester):
 
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-        self.model = GraphGINConv(in_channels=2, edge_in_channels=2, num_classes=len(labels)).to(self.device)
-        self.model.load_state_dict((torch.load(model_path, weights_only=True)))
+        self.model = GraphGATConv(in_channels=2, edge_in_channels=2, num_classes=len(labels)).to(self.device)
+        self.model.load_state_dict((torch.load(self.hyperparams.testing.model_path, weights_only=True)))
         self.model.eval()
         self.logger = logger
 
