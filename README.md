@@ -8,39 +8,12 @@ Decentralized Autonomous Organizations (DAOs) represent a new paradigm in organi
 
 ## Models Included
 
-The Daoprover repository includes the following machine learning models:
+The Daoprover repository includes the following machine-learning models:
 
-1. **Model 1**: *Description of Model 1 and its purpose.*
-2. **Model 2**: *Description of Model 2 and its purpose.*
-3. **Model 3**: *Description of Model 3 and its purpose.*
-   <!-- Add more models as necessary -->
+1. **GAT**
+2. **SAGE GNN**
+3. **Autoencoder
 
-## Usage
-
-To utilize the models provided in this repository, follow these steps:
-
-1. **Clone the Repository**: Clone this repository to your local machine using the following command:
-   ```
-   git clone https://github.com/your-username/Daoprover.git
-   ```
-
-2. **Navigate to Model Directory**: Enter the directory of the model you wish to use:
-   ```
-   cd model1
-   ```
-
-3. **Install Dependencies**: Ensure you have the necessary dependencies installed by running:
-   ```
-   pip install -r requirements.txt
-   ```
-
-4. **Run the Model**: Execute the model script by running:
-   ```
-   python model1.py
-   ```
-   *Replace `model1.py` with the name of the script associated with your chosen model.*
-
-## Contribution Guidelines
 
 We welcome contributions to Daoprover! If you would like to contribute, please follow these guidelines:
 
