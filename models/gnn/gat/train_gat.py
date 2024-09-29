@@ -39,8 +39,8 @@ class GatTrainer():
         device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
         num_classes = len(label_encoder.classes_)
-        model = GraphGATConv(in_channels=2, edge_in_channels=2, num_classes=num_classes).to(device)
-        optimizer = torch.optim.Adam(model.parameters(), lr=1e-8, weight_decay=5e-7)
+        model = GraphGATConv(in_channels=5, edge_in_channels=4, num_classes=num_classes).to(device)
+        optimizer = torch.optim.Adam(model.parameters(), lr=self.hyperparams.training.learning_rate, weight_decay=5e-4)
 
         def train(loader):
             i = 0
@@ -59,13 +59,13 @@ class GatTrainer():
                 del data
                 torch.cuda.empty_cache()
                 gc.collect()
-
+                self.logger.info(f"step {i}")
                 i += 1
             return total_loss / len(loader)
         best_loss = 1
 
         # model.load_state_dict(
-        #     (torch.load("/home/sempai/Desktop/Projects/validation-model/assets/models/gin_model_best_v1_new_dataset.h5", weights_only=True)))
+        #     (torch.load(self.hyperparams.training., weights_only=True)))
 
         for epoch in range(self.hyperparams.training.epochs_number):
 

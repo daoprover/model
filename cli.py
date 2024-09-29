@@ -201,6 +201,30 @@ def rebuild_graph(verbose: Annotated[
         gh.rebuild_transaction_graph(filepath,  new_path)
 
 
+
+
+@app.command()
+def check(verbose: Annotated[
+    int,
+    typer.Option(
+        help="Whether to print the logs. 0 to set WARNING level only, 1 for INFO, 2 for showing triplet_network summary and debug"
+    ),
+] = 1,):
+
+    logger = _get_logger(level=VerboseMode(verbose).log_level())
+
+    try:
+        hyperparams = GatHyperParams()
+        gh = GraphHelper(logger)
+
+    except Exception as e:
+        logger.exception("Failed to initialize the ModelTester instance. Aborting...")
+        return
+
+    for file_path in [f for f in os.listdir(hyperparams.dataset.train) if f.endswith('.gexf')]:
+        g,  label = gh.load_transaction_graph_from_gexf( os.path.join(hyperparams.dataset.train, file_path))
+        logger.info(f"LABEL: {label}",  )
+
 def _get_logger(level="INFO") -> logging.Logger:
     """
     Configures the logging, and returns the logger instance
