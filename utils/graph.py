@@ -1,3 +1,5 @@
+import os
+
 import requests
 import networkx as nx
 import matplotlib.pyplot as plt
@@ -131,7 +133,9 @@ class GraphHelper:
             if G.nodes[node]['num_transactions'] > 0:
                 G.nodes[node]['avg_transaction_value'] = total_value / G.nodes[node]['num_transactions']
 
-        self.save_transaction_graph_to_gexf(G, new_path)
+        self.save_transaction_graph_to_gexf(G, new_path, label)
+        print("rebuild: ", filepath)
+        os.remove(filepath)
 
     def load_transaction_graph_from_gexf(self, filepath):
         G = nx.read_gexf(filepath)

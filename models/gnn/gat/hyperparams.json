@@ -1,12 +1,12 @@
 {
   "meta": {
-    "version": "v_1"
+    "version": "v_3_6"
   },
   "dataset": {
     "dataset_fraction": 1,
-    "train": "./assets/graphs",
-    "test": "./assets/test",
-    "raw_dataset": "./assets/new",
+    "train": "./assets/train",
+    "test": "./assets/graphs",
+    "raw_dataset": "./assets/graphs",
     "raw_dataset_csv": "./assets/graphs",
     "end_block": 500000,
     "start_block": 400000,
@@ -14,9 +14,9 @@
     "txs_per_block": 2
   },
   "training": {
-    "learning_rate": 1e-6,
+    "learning_rate": 3e-4,
     "clipnorm": 1.0,
-    "batch_size": 4,
+    "batch_size": 64,
     "epochs_number": 100,
     "validation_split": 0.3,
     "verbose": 1
@@ -24,6 +24,6 @@
   "testing": {
     "batch_size": 16,
     "verbose": 1,
-    "model_path": "./assets/models/model.h5"
+    "model_path": "gat_model_best_v_3_6.h5"
   }
 }
