@@ -1,47 +1,83 @@
 import torch
-from torch_geometric.nn import GATConv, global_max_pool
-import torch.nn as nn
 import torch.nn.functional as F
+from torch.nn import ModuleList, Linear, LayerNorm, Dropout
+from torch_geometric.nn import GATConv, global_mean_pool, global_max_pool, JumpingKnowledge
+from torch_geometric.nn import MessagePassing
 
 
 class GraphGATConv(torch.nn.Module):
-    def __init__(self, in_channels, edge_in_channels, num_classes=2, heads=4):
+    def __init__(self, in_channels, edge_in_channels, num_classes=2, heads=4, hidden_channels=16, num_layers=3):
         super(GraphGATConv, self).__init__()
 
-        # First GAT layer: Multi-head with 'heads' attention heads
-        self.conv1 = GATConv(in_channels, 16, heads=heads, edge_dim=edge_in_channels, concat=True)
+        # Initial node feature transformation
+        self.node_proj = Linear(in_channels, hidden_channels)
 
-        # Second GAT layer: Multi-head with 'heads' attention heads
-        self.conv2 = GATConv(16 * heads, 16, heads=heads, edge_dim=edge_in_channels, concat=True)
+        # Initial edge feature transformation
+        self.edge_proj = Linear(edge_in_channels, hidden_channels)
 
-        # Fully connected layers after pooling
-        self.fc1 = nn.Linear(16 * heads, 32)
-        self.fc2 = nn.Linear(32, num_classes)
+        # GAT layers with enhanced edge conditioning
+        self.gat_layers = ModuleList()
+        self.edge_update_networks = ModuleList()
+        self.norms = ModuleList()
 
-        # Dropout and LayerNorm
-        self.dropout = nn.Dropout(p=0.4)
-        self.norm1 = nn.LayerNorm(16 * heads)
-        self.norm2 = nn.LayerNorm(32)
+        # Build multiple GAT layers with edge-conditioned transformations
+        for i in range(num_layers):
+            input_dim = hidden_channels * heads if i > 0 else hidden_channels
+            self.gat_layers.append(
+                GATConv(input_dim, hidden_channels, heads=heads, edge_dim=hidden_channels, concat=True))
+
+            # Edge update network for transforming edge features after each GAT layer
+            self.edge_update_networks.append(Linear(hidden_channels, hidden_channels))
+            self.norms.append(LayerNorm(hidden_channels * heads))
+
+        # Jumping Knowledge module to aggregate features from different GAT layers
+        self.jump = JumpingKnowledge(mode='cat')
+
+        # Fully connected layers for graph-level classification
+        self.fc1 = Linear(hidden_channels * heads * num_layers, 64)
+        self.fc2 = Linear(64, num_classes)
+
+        # Dropout and LayerNorm for MLP layers
+        self.dropout = Dropout(p=0.5)
+        self.norm_fc1 = LayerNorm(64)
 
     def forward(self, data):
         x, edge_index, edge_attr, batch = data.x, data.edge_index, data.edge_attr, data.batch
 
-        # First GAT convolution + ReLU + normalization
-        x = self.conv1(x, edge_index, edge_attr)
-        x = F.relu(x)
-        x = self.norm1(x)
-
-        # Second GAT convolution + ReLU
-        x = self.conv2(x, edge_index, edge_attr)
+        # Project node features to higher dimension
+        x = self.node_proj(x)
         x = F.relu(x)
 
-        # Global max pooling
-        x = global_max_pool(x, batch)
+        # Project edge features to hidden dimension
+        edge_attr = self.edge_proj(edge_attr)
+        edge_attr = F.relu(edge_attr)
 
-        # Fully connected layers
+        # Store outputs from each GAT layer for Jumping Knowledge
+        xs = []
+
+        # GAT layers with edge-conditioned transformations
+        for i, conv in enumerate(self.gat_layers):
+            # Perform graph convolution with edge features
+            x = conv(x, edge_index, edge_attr)
+            x = F.relu(x)
+            x = self.norms[i](x)
+
+            # Update edge features using a simple MLP
+            edge_attr = self.edge_update_networks[i](edge_attr)
+            edge_attr = F.relu(edge_attr)
+
+            # Store the output of each GAT layer
+            xs.append(x)
+
+        # Jumping Knowledge to aggregate layer outputs
+        x = self.jump(xs)
+
+        # Global mean pooling + global max pooling combination
+        x = global_mean_pool(x, batch) + global_max_pool(x, batch)
+
+        # Fully connected layers with Dropout and LayerNorm
         x = self.fc1(x)
-        x = self.norm2(x)
-        x = F.relu(x)
+        x = F.relu(self.norm_fc1(x))
         x = self.dropout(x)
         x = self.fc2(x)
 
