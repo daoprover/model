@@ -16,6 +16,7 @@ from index.index import Indexer
 from models.gnn.gat.hyperparams import GatHyperParams
 from models.gnn.gat.test_gat import TestGAT
 from models.gnn.gat.train_gat import GatTrainer
+from models.gnn.manual.train import ManualGNNTrainer
 from utils.graph import GraphHelper
 
 sys.path.insert(1, os.path.join(sys.path[0], "../.."))
@@ -38,6 +39,35 @@ class VerboseMode(IntEnum):
         Returns the string representation of the enum
         """
         return {0: "WARNING", 1: "INFO", 2: "DEBUG"}.get(self.value, "INFO")
+
+@app.command()
+def train_manual(
+        verbose: Annotated[
+            int,
+            typer.Option(
+                help="Whether to print the logs. 0 to set WARNING level only, 1 for INFO, 2 for showing triplet_network summary and debug"
+            ),
+        ] = 1,
+) -> None:
+    """
+    Train the model
+    ### Args:
+        See the help for each argument
+    """
+
+    print("train_manual")
+
+    logger = _get_logger(level=VerboseMode(verbose).log_level())
+
+    try:
+        trainer = ManualGNNTrainer(  logger)
+        trainer.train()
+
+    except Exception as e:
+        logger.exception("Error while testing the model. Aborting...")
+        return
+
+    logger.info("Done! Exiting...")
 
 
 @app.command()

@@ -1,6 +1,5 @@
 import os
 import sys
-from pathlib import Path
 from torch_geometric.loader import DataLoader
 import torch
 import logging
