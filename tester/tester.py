@@ -20,14 +20,25 @@ class Tester:
         all_labels = []
         all_probs = []
         with torch.no_grad():
-            for data in loader:
-                data = data.to(self.device)  # Move data to GPU
-                out = self.model(data)
+            for batch in loader:
+
+                print("data: ", batch)
+                batch = batch.to(self.device)  # Move data to GPU
+                out = self.model(
+                        x=batch.x,
+                        edge_index=batch.edge_index,
+                        edge_attr=batch.edge_attr,
+                        node_time_label=batch.x[:, 2].long(),
+                        edge_time_label=batch.edge_attr[:, 2].long(),
+                        batch=batch.batch
+                )
+
+                print("out: ", out)
                 prob = torch.exp(out)  # Convert log probabilities to probabilities
                 _, preds = out.max(dim=1)
-                correct += int((preds == data.y).sum())
+                correct += int((preds == batch.y).sum())
                 all_preds.extend(preds.cpu().numpy())
-                all_labels.extend(data.y.cpu().numpy())
+                all_labels.extend(batch.y.cpu().numpy())
                 all_probs.extend(prob.cpu().numpy())  # Store all probabilities
 
         accuracy = correct / len(loader.dataset)

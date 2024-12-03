@@ -2,6 +2,7 @@
 import torch
 import torch.nn as nn
 from torch_geometric.nn import MessagePassing, global_mean_pool
+from torch_geometric.profile.profile import format_prof_time
 from torch_geometric.utils import softmax
 
 
@@ -34,15 +35,15 @@ class GraphGNNWithEmbeddings(MessagePassing):
         )
 
     def forward(self, x, edge_index, edge_attr, node_time_label, edge_time_label, batch):
-
+        print("forward")
         embedded_node_time = self.node_time_embedding(node_time_label)
         embedded_edge_time = self.edge_time_embedding(edge_time_label)
 
-        print("Shape of x (node features):", x.shape)  # Should be [num_nodes, node_input_dim]
-        print("Shape of embedded_node_time:", embedded_node_time.shape)  # Should be [num_nodes, embedding_dim]
-        concatenated_features = torch.cat([x, embedded_node_time], dim=-1)
-        print("Shape of concatenated features:", concatenated_features.shape)
-
+        print("x:", x.shape)
+        print("edge_attr:", edge_attr.shape)
+        print("edge_index:", edge_index.shape)
+        print("batch:", batch.shape)
+        print("node_time_label:", node_time_label.shape)
 
 
         x = torch.cat([x, embedded_node_time], dim=-1)
@@ -62,11 +63,9 @@ class GraphGNNWithEmbeddings(MessagePassing):
         return self.graph_classifier(graph_embedding)  # Graph-level output
 
     def message(self, x_i, x_j, edge_attr, edge_index):
-        num_nodes = x_i.shape[0]  # Total number of nodes
-        print("Number of nodes:", num_nodes)
+        print("message")
 
         # Check the range of edge_index[1]
-        print("Max index in edge_index[1]:", edge_index[1].max().item())
 
         combined = torch.cat([x_i, x_j, edge_attr], dim=-1)
         attention_logits = self.attention_mlp(combined)
@@ -74,5 +73,6 @@ class GraphGNNWithEmbeddings(MessagePassing):
         return attention * x_j
 
     def update(self, aggr_out, x):
+        print("update")
         combined = torch.cat([x, aggr_out], dim=-1)
         return self.update_mlp(combined)

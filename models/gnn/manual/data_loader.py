@@ -11,7 +11,7 @@ from utils.graph import GraphHelper
 
 
 class GraphDatasetLoader(Dataset):
-    def __init__(self, base_dir, label_encoder, logger: logging.Logger, dataset_size=10):
+    def __init__(self, base_dir, label_encoder, logger: logging.Logger, dataset_size=10000):
         self.logger = logger
         self.dataset_size = dataset_size
         self.base_dir = base_dir
@@ -44,7 +44,6 @@ class GraphDatasetLoader(Dataset):
 
             filepath = os.path.join(self.base_dir, self.files[idx])
 
-            print("filepath: ",filepath)
             # Load the graph and label from GEXF file
             try:
                 graph, label = self.graph_helper.load_transaction_graph_from_gexf(filepath)

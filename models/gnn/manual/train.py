@@ -29,9 +29,9 @@ class ManualGNNTrainer():
         label_encoder.fit(labels)
 
         # Load dataset
-        dataset = GraphDatasetLoader(base_dir='data/train', label_encoder=label_encoder,
+        dataset = GraphDatasetLoader(base_dir='assets/train', label_encoder=label_encoder,
                                      logger=logging.getLogger())
-        loader = DataLoader(dataset, batch_size=4, shuffle=True)
+        loader = DataLoader(dataset, batch_size=32, shuffle=True)
 
         # Initialize model
         num_time_labels = 4
@@ -78,6 +78,7 @@ class ManualGNNTrainer():
                 optimizer.step()
                 total_loss += loss.item()
             print(f"Epoch {epoch + 1}/{epochs}, Loss: {total_loss / len(loader):.4f}")
+        torch.save(model.state_dict(), f"manual_1.h5")
 
         # Testing
         model.eval()

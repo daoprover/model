@@ -16,6 +16,7 @@ from index.index import Indexer
 from models.gnn.gat.hyperparams import GatHyperParams
 from models.gnn.gat.test_gat import TestGAT
 from models.gnn.gat.train_gat import GatTrainer
+from models.gnn.manual.test_gat import TestGraphGNNWithEmbeddings
 from models.gnn.manual.train import ManualGNNTrainer
 from utils.graph import GraphHelper
 
@@ -166,6 +167,39 @@ def test_gat(
 
     try:
         indexer = TestGAT(hyperparams,  logger)
+        indexer.test()
+
+    except Exception as e:
+        logger.exception("Error while testing the model. Aborting...")
+        return
+
+    logger.info("Done! Exiting...")
+
+@app.command()
+def test_manual(
+        verbose: Annotated[
+            int,
+            typer.Option(
+                help="Whether to print the logs. 0 to set WARNING level only, 1 for INFO, 2 for showing triplet_network summary and debug"
+            ),
+        ] = 1,
+) -> None:
+    """
+    Test the model
+    ### Args:
+        See the help for each argument
+    """
+
+    logger = _get_logger(level=VerboseMode(verbose).log_level())
+
+    try:
+        hyperparams = GatHyperParams()
+    except Exception as e:
+        logger.exception("Failed to initialize the ModelTester instance. Aborting...")
+        return
+
+    try:
+        indexer = TestGraphGNNWithEmbeddings(logger)
         indexer.test()
 
     except Exception as e:
